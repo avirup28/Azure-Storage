@@ -1,0 +1,7 @@
+$Storages = Get-AzureRmStorageAccount | Where {$_.EnableHttpsTrafficOnly -eq $false}
+ 
+ForEach ($Storage in $Storages) {
+ 
+Set-AzureRmStorageAccount -Name $Storage.StorageAccountName -ResourceGroupName $Storage.ResourceGroupName -EnableHttpsTrafficOnly $True
+ 
+} 
