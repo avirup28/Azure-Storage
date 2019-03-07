@@ -1,0 +1,65 @@
+#exceptionList parameter is a hashtable which contains ContainerName with respect to StorageAccountName in the form of Account : Container 
+
+$exceptionList= @{"test1" = "shaveadvisorcdn";
+                  "test2" = "`$web","assets";
+                }
+
+$exceptionStorageAccount = $exceptionList.Keys
+$exceptionStorageContainer = $exceptionList.Values
+
+$Storages = Get-AzStorageAccount | select StorageAccountName
+
+foreach ($Storage in $Storages) {
+
+        $AccountName = $Storage.StorageAccountName
+
+        if ($exceptionStorageAccount -notcontains "$AccountName") {
+
+$ctx = New-AzStorageContext -StorageAccountName $Storage.StorageAccountName
+$Containers = Get-AzStorageContainer -Context $ctx | select Name, PublicAccess
+
+foreach ($Container in $Containers) {
+    
+$Access = $Container.PublicAccess
+$Name = $Container.Name
+
+if ($Access -ne 'Off') {
+
+Write-Host "Container $Name in Storage Account $($Storage.StorageAccountName) is being modified"
+
+Set-AzStorageContainerAcl -Name $Name -Permission Off -Context $ctx
+                 }
+             }
+
+         }
+
+else {
+
+$ctx = New-AzStorageContext -StorageAccountName $Storage.StorageAccountName
+$Containers = Get-AzStorageContainer -Context $ctx | select Name, PublicAccess
+
+
+foreach ($Container in $Containers) {
+
+$Access = $Container.PublicAccess
+$Name = $Container.Name
+
+    if ($exceptionList.$AccountName -notcontains $Name) {
+
+        if ($Access -ne 'Off') {
+
+            Write-Host "Container $Name in Storage Account $($Storage.StorageAccountName) is being modified"
+
+            Set-AzStorageContainerAcl -Name $Name -Permission Off -Context $ctx
+    
+                    }
+
+                }
+
+          else {Write-Host "Container $Name is added under Exception List in Storage Account $($Storage.StorageAccountName)"}
+           
+           }
+
+       } 
+    
+    }
