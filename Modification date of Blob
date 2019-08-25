@@ -1,0 +1,34 @@
+$Month = (Get-Date).Month
+$Day = (Get-Date).Day
+$Year = (Get-Date).Year
+ 
+$SAs = Get-AzStorageAccount
+foreach ($AS in $SAs)
+{
+    $Key = Get-AzStorageAccountKey -Name $storageAccountName -ResourceGroupName $rgname
+    $storageAccountKey = $key[0].Value
+    $context = New-AzStorageContext -StorageAccountName $storageAccountName -StorageAccountKey $storageAccountKey
+    $Containers = Get-AzStorageContainer -Context $context
+    foreach( $Conainer in $Containers)
+    {
+        $blobs = Get-AzStorageBlob -Container $Container -Context $context
+        foreach ($blob in $blobs)
+        {
+            $Lastmodified1 = $blob.LastModified
+            $Lastmodifieddate = ($Lastmodified1 -split ' ')[0]
+            $Lastmodifiedmonth = ($Lastmodifieddate -split '/')[0]
+            $Lastmodifiedday = ($Lastmodifieddate -split '/')[1]
+            $Lastmodifiedyear = ($Lastmodifieddate -split '/')[2]
+            $differenceinyear = $Lastmodifiedyear - $Year
+            $differenceinmonth = $Lastmodifiedmonth - $Month
+            if($differenceinyear -eq $null)
+            {
+            Write-Host "The blob" $blob.Name "is not used for last" $differenceinmonth "months"
+            }
+            else
+            {
+            Write-Host "The blob" $blob.Name "is not used for last" $differenceinyear "year" and $Month "months"
+            }
+        }
+    }
+}
