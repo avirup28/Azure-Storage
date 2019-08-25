@@ -25,7 +25,7 @@ $LMmonth = ($LMdate -split '/')[0]
 $LMday = ($LMdate -split '/')[1]
 $LMyear = ($LMdate -split '/')[2]
 
-$MDiff = $LMmonth - $Month
+$MDiff = $Month -$LMmonth
 $YDiff = $Year - $LMyear
 
 
