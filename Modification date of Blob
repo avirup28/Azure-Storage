@@ -1,34 +1,63 @@
 $Month = (Get-Date).Month
 $Day = (Get-Date).Day
 $Year = (Get-Date).Year
- 
-$SAs = Get-AzStorageAccount
-foreach ($AS in $SAs)
-{
-    $Key = Get-AzStorageAccountKey -Name $storageAccountName -ResourceGroupName $rgname
-    $storageAccountKey = $key[0].Value
-    $context = New-AzStorageContext -StorageAccountName $storageAccountName -StorageAccountKey $storageAccountKey
-    $Containers = Get-AzStorageContainer -Context $context
-    foreach( $Conainer in $Containers)
-    {
-        $blobs = Get-AzStorageBlob -Container $Container -Context $context
-        foreach ($blob in $blobs)
-        {
-            $Lastmodified1 = $blob.LastModified
-            $Lastmodifieddate = ($Lastmodified1 -split ' ')[0]
-            $Lastmodifiedmonth = ($Lastmodifieddate -split '/')[0]
-            $Lastmodifiedday = ($Lastmodifieddate -split '/')[1]
-            $Lastmodifiedyear = ($Lastmodifieddate -split '/')[2]
-            $differenceinyear = $Lastmodifiedyear - $Year
-            $differenceinmonth = $Lastmodifiedmonth - $Month
-            if($differenceinyear -eq $null)
-            {
-            Write-Host "The blob" $blob.Name "is not used for last" $differenceinmonth "months"
-            }
-            else
-            {
-            Write-Host "The blob" $blob.Name "is not used for last" $differenceinyear "year" and $Month "months"
-            }
+
+
+$Storages = Get-AzStorageAccount | select StorageAccountName
+
+foreach ($Storage in $Storages) {
+
+        $AccountName = $Storage.StorageAccountName
+
+
+$ctx = New-AzStorageContext -StorageAccountName $Storage.StorageAccountName
+$Containers = Get-AzStorageContainer -Context $ctx | select Name, LastModified
+
+foreach ($Container in $Containers) {
+    
+$LM = $Container.LastModified.LocalDateTime
+$Name = $Container.Name
+$Count = $Containers.Count
+
+$LMdate = ($LM -split ' ')[0] 
+
+$LMmonth = ($LMdate -split '/')[0]
+$LMday = ($LMdate -split '/')[1]
+$LMyear = ($LMdate -split '/')[2]
+
+$MDiff = $LMmonth - $Month
+$YDiff = $Year - $LMyear
+
+
+if ( $YDiff -gt '0') {
+
+
+$Output =New-Object -TypeName PSObject -Property @{
+    StorageAccount = $AccountName
+    TotalBlobs = $Count
+    Container = $Name
+    LastModified = $LM
+  } | select StorageAccount,TotalBlobs,Container,LastModified
+
+$Output | Export-Csv .\StorageAccountCleanUp.csv -Append
+
         }
+
+else {
+        
+        if ($MDiff -gt '2') {
+        
+ $Output =New-Object -TypeName PSObject -Property @{
+    StorageAccount = $AccountName
+    TotalBlobs = $Count
+    Container = $Name
+    LastModified = $LM
+  } | select StorageAccount,TotalBlobs,Container,LastModified
+
+$Output | Export-Csv .\StorageAccountCleanUp.csv -Append
+        
+        
+        }
+      }
     }
 }
