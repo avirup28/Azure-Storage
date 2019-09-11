@@ -4,7 +4,7 @@ function BC {
   Write-Host "
   
   
-  Displaying Blob in the form of StorageAccountName-BlobCount-BlobName-LastModifiedDate
+Displaying Blob in the form of StorageAccountName-ContainerCount-ContainerName-BlobCount-BlobName-LastModifiedDate
 
 
   "
@@ -18,6 +18,7 @@ function BC {
           foreach ($blob in $blobs) {
 
                  $LMD = $blob.LastModified.LocalDateTime
+                 $Date = $LMD.ToShortDateString()
                  $LMdate = ($LMD -split ' ')[0]
                  $LMmonth = ($LMdate -split '/')[0]
                  $LMday = ($LMdate -split '/')[1]
@@ -25,11 +26,11 @@ function BC {
                  $MDiff = $Month -$LMmonth
                  $YDiff = $Year - $LMyear
 
-                 if ( $YDiff -gt '0') {Write-Host "$AccountName;$Count;$Name;$LMD"}
+                 if ( $YDiff -gt '0') {Write-Host "$AccountName;$Count;$Name;$Date"}
 
                  else {
         
-                     if ($MDiff -eq '0') {Write-Host "$AccountName;$Count;$Name;$LMD"}
+                     if ($MDiff -gt '1') {Write-Host "$AccountName;$Count;$Name;$($blobs.Count);$($blob.Name);$Date"}
         }
      }
    }
@@ -40,7 +41,7 @@ function F {
   Write-Host " 
   
   
-  Displaying Files in the form of StorageAccountName-FileShareCount-FileName-DirectoryCount-DirectoryName
+Displaying Files in the form of StorageAccountName-FileCount-FileName-DirectoryCount
   
              
   "
@@ -48,38 +49,25 @@ function F {
   foreach( $file in $files) {
 
       $Name = $file.Name  
-      $Count = $files.Count        
-      $shares = Get-AzStorageFile -ShareName $Name -Context $context
+      $Count = $files.Count
+      $DirCount = (Get-AzStorageFile -ShareName $file.Name -Context $context).count        
 
-          foreach ($share in $shares) {
-
-                 $Dirs = Get-AzStorageFile -ShareName $Name -Path $share.Name -Context $context | Get-AzStorageFile
-
-                    foreach ($Dir in $Dirs) {Write-Host "$AccountName;$Count;$Name;$($Dir.Count);$($Dir.Name)"}
-             }
-        }
-   }
+      Write-Host "$AccountName;$Count;$Name;$DirCount"}
+      
+       }
+  
 
 function T {
 
  Write-Host " 
  
  
- Displaying Table in the form of StorageAccountName-TableCount-TableName
+Displaying Table in the form of StorageAccountName-TableCount-TableName
 
 
  "     
-  foreach( $table in $tables) {        
-
-            $Output =New-Object -TypeName PSObject -Property @{
-            StorageAccount = $AccountName
-            TotalTables = $tables.Count
-            table = $table.Name
-            } | select StorageAccount,TotalTables,table
-
-            Write-Host "$AccountName;$($table.Count);$($table.Name)"
-
-            }
+  foreach( $table in $tables) {Write-Host "$AccountName;$($table.Count);$($table.Name)"}
+       
         }
      
 
@@ -88,144 +76,7 @@ function Q {
     Write-Host "
     
     
-    Displaying Queue in the form of StorageAccountName-QueueCount-QueueName-MessageCount
-
-
-    "
-
-    foreach( $queue in $queues) {Write-Host "$AccountName;$($queues.Count);$($queues.Name);$($queue.ApproximateMessageCount)"}
-
-        }
-
-
-$Month = (Get-Date).Month
-$Day = (Get-Date).Day
-$Year = (Get-Date).Year        
-
-
-$SAccounts = Get-AzStorageAccount -ResourceGroupName AZ-RG-CS-Automation-AP-01 -Name accountstorage321
-# | where {$PSItem.Tags.Keys -eq "Stage" -and $PSItem.Tags.Values -eq "NonProd"}
-foreach ($SAccount in $SAccounts) {
-
-
-        $AccountName =$SAccount.StorageAccountName        
-        $Key = Get-AzStorageAccountKey -Name $SAccount.StorageAccountName -ResourceGroupName $SAccount.ResourceGroupName
-        $storageAccountKey = $key[0].Value
-        $context = New-AzStorageContext -StorageAccountName $SAccount.StorageAccountName -StorageAccountKey $storageAccountKey
-
-        $containers = Get-AzStorageContainer -Context $context
-        $files = Get-AzStorageShare -Context $context
-        $queues = Get-AzStorageQueue -Context $context
-        $tables = Get-AzStorageTable -Context $context
-
-
-        if ($Containers -ne $Null) { BC }
-        else {Write-Host "$AccountName has no containers"}
-
-        if ($files -ne $Null) { F }
-        else {Write-Host "$AccountName has no File share"}
-
-        if ($queue -ne $Null) { Q }
-        else {Write-Host "$AccountName has no Queue"}
-
-        if ($table -ne $Null) { T }
-        else {Write-Host "$AccountName has no Table"}
-
-        }
-
-
-              
-
-function BC {
-
-  Write-Host "
-  
-  
-  Displaying Blob in the form of StorageAccountName-BlobCount-BlobName-LastModifiedDate
-
-
-  "
-     
-  foreach( $container in $containers) {
-
-      $Name = $container.Name  
-      $Count = $containers.Count        
-      $blobs = Get-AzStorageBlob -Container $Name -Context $context
-
-          foreach ($blob in $blobs) {
-
-                 $LMD = $blob.LastModified.LocalDateTime
-                 $LMdate = ($LMD -split ' ')[0]
-                 $LMmonth = ($LMdate -split '/')[0]
-                 $LMday = ($LMdate -split '/')[1]
-                 $LMyear = ($LMdate -split '/')[2]
-                 $MDiff = $Month -$LMmonth
-                 $YDiff = $Year - $LMyear
-
-                 if ( $YDiff -gt '0') {Write-Host "$AccountName;$Count;$Name;$LMD"}
-
-                 else {
-        
-                     if ($MDiff -eq '0') {Write-Host "$AccountName;$Count;$Name;$LMD"}
-        }
-     }
-   }
-}
-
-function F {
-
-  Write-Host " 
-  
-  
-  Displaying Files in the form of StorageAccountName-FileShareCount-FileName-DirectoryCount-DirectoryName
-  
-             
-  "
-     
-  foreach( $file in $files) {
-
-      $Name = $file.Name  
-      $Count = $files.Count        
-      $shares = Get-AzStorageFile -ShareName $Name -Context $context
-
-          foreach ($share in $shares) {
-
-                 $Dirs = Get-AzStorageFile -ShareName $Name -Path $share.Name -Context $context | Get-AzStorageFile
-
-                    foreach ($Dir in $Dirs) {Write-Host "$AccountName;$Count;$Name;$($Dir.Count);$($Dir.Name)"}
-             }
-        }
-   }
-
-function T {
-
- Write-Host " 
- 
- 
- Displaying Table in the form of StorageAccountName-TableCount-TableName
-
-
- "     
-  foreach( $table in $tables) {        
-
-            $Output =New-Object -TypeName PSObject -Property @{
-            StorageAccount = $AccountName
-            TotalTables = $tables.Count
-            table = $table.Name
-            } | select StorageAccount,TotalTables,table
-
-            Write-Host "$AccountName;$($table.Count);$($table.Name)"
-
-            }
-        }
-     
-
-function Q {
-     
-    Write-Host "
-    
-    
-    Displaying Queue in the form of StorageAccountName-QueueCount-QueueName-MessageCount
+Displaying Queue in the form of StorageAccountName-QueueCount-QueueName-MessageCount
 
 
     "
@@ -241,10 +92,19 @@ $Year = (Get-Date).Year
 
 
 $SAccounts = Get-AzStorageAccount | where {$PSItem.Tags.Keys -eq "Stage" -and $PSItem.Tags.Values -eq "NonProd"}
+
 foreach ($SAccount in $SAccounts) {
 
+        $AccountName =$SAccount.StorageAccountName 
+          
+        if ($AccountName -notmatch ("azcscloudteam|logextconsumerap01|logextconsumereu01|logextconsumereuna01|allwebapplogsap|allwebapplogseu|allwebapplogsna")) {
 
-        $AccountName =$SAccount.StorageAccountName        
+        Write-Host "
+        
+                    Checking for $AccountName 
+        
+        "
+             
         $Key = Get-AzStorageAccountKey -Name $SAccount.StorageAccountName -ResourceGroupName $SAccount.ResourceGroupName
         $storageAccountKey = $key[0].Value
         $context = New-AzStorageContext -StorageAccountName $SAccount.StorageAccountName -StorageAccountKey $storageAccountKey
@@ -256,18 +116,42 @@ foreach ($SAccount in $SAccounts) {
 
 
         if ($Containers -ne $Null) { BC }
-        else {Write-Host "$AccountName has no containers"}
+        else {Write-Host "
+        
+$AccountName has no containers
+        
+        
+        "}
 
         if ($files -ne $Null) { F }
-        else {Write-Host "$AccountName has no File share"}
+        else {Write-Host "
+        
+$AccountName has no File share
+        
+        "}
 
-        if ($queue -ne $Null) { Q }
-        else {Write-Host "$AccountName has no Queue"}
+        if ($queues -ne $Null) { Q }
+        else {Write-Host "
+        
+$AccountName has no Queue
+        
+        "}
 
-        if ($table -ne $Null) { T }
-        else {Write-Host "$AccountName has no Table"}
+        if ($tables -ne $Null) { T }
+        else {Write-Host "
+        
+$AccountName has no Table
+        
+        "}
 
         }
 
+        else {Write-Host "
+        
+$AccountName is added under exception list
+        
+        "}
+
+    }
 
               
