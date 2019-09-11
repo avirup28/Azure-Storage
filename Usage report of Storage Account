@@ -88,12 +88,18 @@ Displaying Queue in the form of StorageAccountName-QueueCount-QueueName-MessageC
 
 $Month = (Get-Date).Month
 $Day = (Get-Date).Day
-$Year = (Get-Date).Year        
+$Year = (Get-Date).Year
 
+$Hour = (Get-Date).Hour
 
-$SAccounts = Get-AzStorageAccount | where {$PSItem.Tags.Keys -eq "Stage" -and $PSItem.Tags.Values -eq "NonProd"}
+if ($Hour -eq "0") { Prod }
+if ($Hour -eq "12") { NonProd }         
 
-foreach ($SAccount in $SAccounts) {
+function NonProd {
+
+$SAccountNP = Get-AzStorageAccount | where {$PSItem.Tags.Keys -eq "Stage" -and $PSItem.Tags.Values -eq "NonProd"}
+
+foreach ($SAccount in $SAccountNP) {
 
         $AccountName =$SAccount.StorageAccountName 
           
@@ -154,4 +160,72 @@ $AccountName is added under exception list
 
     }
 
+}
+
+
+function Prod {
+
+$SAccountP = Get-AzStorageAccount | where {$PSItem.Tags.Keys -eq "Stage" -and $PSItem.Tags.Values -eq "Prod"}
+
+foreach ($SAccount in $SAccountP) {
+
+        $AccountName =$SAccount.StorageAccountName 
+          
+        if ($AccountName -notmatch ("azcscloudteam|logextconsumerap01|logextconsumereu01|logextconsumereuna01|allwebapplogsap|allwebapplogseu|allwebapplogsna")) {
+
+        Write-Host "
+        
+                    Checking for $AccountName 
+        
+        "
+             
+        $Key = Get-AzStorageAccountKey -Name $SAccount.StorageAccountName -ResourceGroupName $SAccount.ResourceGroupName
+        $storageAccountKey = $key[0].Value
+        $context = New-AzStorageContext -StorageAccountName $SAccount.StorageAccountName -StorageAccountKey $storageAccountKey
+
+        $containers = Get-AzStorageContainer -Context $context
+        $files = Get-AzStorageShare -Context $context
+        $queues = Get-AzStorageQueue -Context $context
+        $tables = Get-AzStorageTable -Context $context
+
+
+        if ($Containers -ne $Null) { BC }
+        else {Write-Host "
+        
+$AccountName has no containers
+        
+        
+        "}
+
+        if ($files -ne $Null) { F }
+        else {Write-Host "
+        
+$AccountName has no File share
+        
+        "}
+
+        if ($queues -ne $Null) { Q }
+        else {Write-Host "
+        
+$AccountName has no Queue
+        
+        "}
+
+        if ($tables -ne $Null) { T }
+        else {Write-Host "
+        
+$AccountName has no Table
+        
+        "}
+
+        }
+
+        else {Write-Host "
+        
+$AccountName is added under exception list
+        
+        "}
+
+    }
+}
               
